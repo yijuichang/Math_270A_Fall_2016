@@ -419,28 +419,6 @@ void runBenchmark()
     }
 }
 
-
-//void My_SVD(double F[2][2], double U[2][2], double sigma[2], double V[2][2]) {
-//	int  i, j, k;
-//	const int N = 2; // why N cannot be input?
-//	double C[N][N],  temp, A[N][N], c, s,lambda[2];
-//
-//	c = A[0][0] / sigma[0];
-//	s = -A[1][0] / sigma[0];
-//
-//	if (A[0][1]*s+A[1][1]*c<0) {
-//		//flip
-//		sigma[1] = -sigma[1];
-//		//U[0][0] = c; U[0][1] = s; U[1][0] = -s; U[1][1] = c;
-//	}
-//	else {
-//
-//		//U[0][0] = c; U[0][1] = s; U[1][0] = -s; U[1][1] = c;
-//	}
-//	U[0][0] = c; U[0][1] = s; U[1][0] = -s; U[1][1] = c;
-//
-//
-//}
 void matrixrotate(Eigen::Matrix3f& S, Eigen::Matrix3f & R, const int N, int i, int j, int k) {
     float temp, temp1, temp2, c, s;
     Eigen::Matrix3f G = Eigen::Matrix3f::Zero(3,3);
@@ -507,20 +485,27 @@ void My_SVD(const Eigen::Matrix2f& F,Eigen::Matrix2f& U,Eigen::Matrix2f& sigma,E
     float s =-A(1, 0) / sigma(0,0);
 
     if (A(0, 1)*s+A(1, 1)*c<0) {
-        //flip
         sigma(1,1) = -sigma(1,1);
-        //U(0, 0) = c; U(0, 1) = s; U(1, 0) = -s; U(1, 1) = c;
-    }
-    else {
-
-        //U(0, 0) = c; U(0, 1) = s; U(1, 0) = -s; U(1, 1) = c;
-    }
+       }  
     U(0, 0) = c; U(0, 1) = s; U(1, 0) = -s; U(1, 1) = c;
 }
 
 
 int main()
 {
-    bool run_benchmark = false;
-    if (run_benchmark) runBenchmark();
+  Eigen::Matrix2f F(2,2);
+  F<<1,2,3,4;
+  Eigen::Matrix2f U(2,2);
+  Eigen::Matrix2f sigma(2,2);
+  Eigen::Matrix2f V(2,2);
+  My_SVD(F,U,sigma,V);
+  std::cout<<U<<std::endl<<sigma<<std::endl<<V<<std::endl;
+  
+  Eigen::Matrix3f FF(2,2);
+  FF<<1,2,3,-2,-3,-4,4,5,6;
+  Eigen::Matrix3f R(3,3);
+  Eigen::Matrix3f S(3,3);
+  My_Polar(FF,R,S);
+  std::cout<<R<<std::endl<<S<<std::endl<<FF<<std::endl;
+
 }
