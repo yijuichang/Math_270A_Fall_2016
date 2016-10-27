@@ -419,36 +419,108 @@ void runBenchmark()
     }
 }
 
-void My_SVD(const Eigen::Matrix2f& F,Eigen::Matrix2f& U,Eigen::Matrix2f& sigma,Eigen::Matrix2f& V){
-//
-//Compute the SVD of input F with sign conventions discussed in class and in assignment
-//
-//input: F
-//output: U,sigma,V with F=U*sigma*V.transpose() and U*U.transpose()=V*V.transpose()=I;
 
+//void My_SVD(double F[2][2], double U[2][2], double sigma[2], double V[2][2]) {
+//	int  i, j, k;
+//	const int N = 2; // why N cannot be input?
+//	double C[N][N],  temp, A[N][N], c, s,lambda[2];
+//
+//	c = A[0][0] / sigma[0];
+//	s = -A[1][0] / sigma[0];
+//
+//	if (A[0][1]*s+A[1][1]*c<0) {
+//		//flip
+//		sigma[1] = -sigma[1];
+//		//U[0][0] = c; U[0][1] = s; U[1][0] = -s; U[1][1] = c;
+//	}
+//	else {
+//
+//		//U[0][0] = c; U[0][1] = s; U[1][0] = -s; U[1][1] = c;
+//	}
+//	U[0][0] = c; U[0][1] = s; U[1][0] = -s; U[1][1] = c;
+//
+//
+//}
+void matrixrotate(Eigen::Matrix3f& S, Eigen::Matrix3f & R, const int N, int i, int j, int k) {
+    float temp, temp1, temp2, c, s;
+    Eigen::Matrix3f G = Eigen::Matrix3f::Zero(3,3);
+    Eigen::Matrix3f tempR(3,3);
+    Eigen::Matrix3f tempS(3,3);
+
+    temp =  S(i, i) + S(j, j);
+    temp1 = S(j, i) - S(i, j);
+    temp2 = sqrt(temp*temp + temp1*temp1);
+    c = temp / temp2;
+    s = temp1 / temp2;
+    G(i, i) = c; G(i, j) = s; G(j, i) = -s; G(j, j) = c; G(k, k) = 1;
+    //printf("\n %f   %f    %f ", temp, temp1, temp2);
+    tempS = G*S; // matrixmultiplication(G, S, tempS, N);
+    S = tempS; // matrixequality(S, tempS, N);
+    //N = G.transpose(); // matrixtranspose(G,N);
+    tempR = R*G.transpose(); // matrixmultiplication(R, G, tempR, N);
+    R = tempR; //matrixequality(R, tempR,N);
+}
+
+void Jacobi(const Eigen::Matrix2f& A, Eigen::Matrix2f& v, Eigen::Matrix2f& lambda) {
+    double temp, a, b, c;
+    a = 1; b = -(A(0, 0) + A(1, 1)); c = A(0, 0) * A(1, 1) - A(0, 1) * A(1, 0);
+
+    lambda(1, 0) = 0.0;
+    lambda(0, 1) = 0.0;
+    lambda(0, 0) =-b/(2*a)+sqrt(b*b-4*a*c) / (2 * a);
+    lambda(1, 1) = -b / (2 * a) - sqrt(b*b - 4 * a*c) / (2 * a);
+
+    if (lambda(0, 0) < lambda(1, 1)) {
+        temp = lambda(0, 0);
+        lambda(0, 0) = lambda(1, 1);
+        lambda(1, 1) = temp;
+    }
+
+    temp = sqrt((A(0, 0)- lambda(0, 0))*(A(0, 0) - lambda(0, 0))+ A(0, 1)*A(0, 1));
+    v(0, 0) =-A(0, 1)/temp ;
+    v(1, 0) = (A(0, 0) - lambda(0, 0))/temp;
+    v(0, 1) = -v(1, 0);
+    v(1, 1) = v(0, 0);
 }
 
 void My_Polar(const Eigen::Matrix3f& F,Eigen::Matrix3f& R,Eigen::Matrix3f& S){
-  //
-  //Compute the polar decomposition of input F (with det(R)=1)
-  //
-  //input: F
-  //output: R,s with F=R*S and R*R.transpose()=I and S=S.transpose()
-
+    int i,j,k,N = 3,it = 0, max_it = 50;
+    float tol = 0.0000001;
+    R = Eigen::Matrix3f::Identity();
+    S = F;
+    while (it<max_it && fmaxf(fmaxf(fabs(S(1, 0) - S(0, 1)), fabs(S(2, 0) - S(0, 2))), fabs(S(2, 1) - S(1, 2)))>tol) {
+        matrixrotate(S, R, N, 0, 1, 2);
+        matrixrotate(S, R, N, 0, 2, 1);
+        matrixrotate(S, R, N, 1, 2, 0);
+        it=it+1;
+    }
 }
 
-// void Algorithm_2_Test(){
-//
-//   Eigen::Matrix2f F,C,U,V;
-//   F<<1,2,3,4;
-//   C=F*F.transpose();
-//   Eigen::Vector2f s2;
-//   JIXIE::Jacobi(C,s2,V);
-//
-// }
+void My_SVD(const Eigen::Matrix2f& F,Eigen::Matrix2f& U,Eigen::Matrix2f& sigma,Eigen::Matrix2f& V) {
+    Eigen::Matrix2f C = F.transpose()*F;
+    Jacobi(C, V, sigma);
+    sigma(0,0) = sqrt(sigma(0,0));
+    sigma(1,1) = sqrt(sigma(1,1));
+    Eigen::Matrix2f A = F*V;
+
+    float c = A(0, 0) / sigma(0,0);
+    float s =-A(1, 0) / sigma(0,0);
+
+    if (A(0, 1)*s+A(1, 1)*c<0) {
+        //flip
+        sigma(1,1) = -sigma(1,1);
+        //U(0, 0) = c; U(0, 1) = s; U(1, 0) = -s; U(1, 1) = c;
+    }
+    else {
+
+        //U(0, 0) = c; U(0, 1) = s; U(1, 0) = -s; U(1, 1) = c;
+    }
+    U(0, 0) = c; U(0, 1) = s; U(1, 0) = -s; U(1, 1) = c;
+}
+
 
 int main()
 {
-  bool run_benchmark = false;
-  if (run_benchmark) runBenchmark();
+    bool run_benchmark = false;
+    if (run_benchmark) runBenchmark();
 }
